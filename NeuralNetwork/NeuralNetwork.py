@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 from .Layers import DenseNetLayer
 from .Optimizers import Optimizer, SGD
 
@@ -75,9 +76,69 @@ class Net:
                                 self.backward_step)
             if i % eval_frequency == 0:
                 print(f"Epoch: {i}, mse train: {mse(Y, self.forward(X))}, mse eval: {mse(Y_eval, self.forward(X_eval))}")
-        print(f"Training result:"
-              f"    mse train: {mse(Y, self.forward(X))} "
-              f"    mse eval: {mse(Y_eval, self.forward(X_eval))}")
+        print(f"Training result:")
+        print(f"    mse train: {mse(Y, self.forward(X))}")
+        print(f"    mse eval: {mse(Y_eval, self.forward(X_eval))}")
+
+    def train_and_visualize(self, X, Y, X_eval, Y_eval, n_epochs=100, eval_frequency=1):
+        weight_norms = []
+        bias_norms = []
+        mse_train = []
+        mse_test = []
+
+        def __change_to_2d(x):
+            if x.ndim == 1:
+                return np.reshape(x, (-1, 1))
+            else:
+                return x
+
+        for i in range(n_epochs):
+            self.optimizer.step(X, Y,
+                                [layer.weights for layer in self.layers],
+                                [layer.biases for layer in self.layers],
+                                self.backward_step)
+            if i % eval_frequency == 0:
+                mse_single_train = mse(Y, self.forward(X))
+                mse_single_test = mse(Y_eval, self.forward(X_eval))
+                mse_train.append(mse_single_train)
+                mse_test.append(mse_single_test)
+                #print(f"Epoch: {i}, mse train: {mse_single_train}, mse eval: {mse_single_test}")
+            weight_norms.append([np.linalg.norm(__change_to_2d(layer.weights), ord='fro') for layer in self.layers])
+            bias_norms.append([np.linalg.norm(__change_to_2d(layer.biases), ord='fro') for layer in self.layers])
+
+        print(f"Training result:")
+        print(f"    mse train: {mse(Y, self.forward(X))}")
+        print(f"    mse eval: {mse(Y_eval, self.forward(X_eval))}")
+
+        for i in range(len(self.layers)):
+            plt.scatter(
+                list(range(n_epochs)),
+                [weight_norms[j][i] for j in range(n_epochs)]
+            )
+            plt.title(f"Norm of weights of layer number: {i}")
+            plt.show()
+
+        for i in range(len(self.layers)):
+            plt.scatter(
+                list(range(n_epochs)),
+                [bias_norms[j][i] for j in range(n_epochs)]
+            )
+            plt.title(f"Norm of biases of layer number: {i}")
+            plt.show()
+
+        plt.scatter(
+            list(range(0, n_epochs, eval_frequency)),
+            mse_train,
+            color='blue'
+        )
+        plt.scatter(
+            list(range(0, n_epochs, eval_frequency)),
+            mse_test,
+            color='red'
+        )
+        plt.title(f"MSE of train and test set")
+        plt.legend(['train', 'test'])
+        plt.show()
 
     def set_weights(self, weights):
         for i in range(len(self.layers)):
