@@ -22,3 +22,13 @@ class RandomUniformInitializer(Initializer):
 
     def initialize(self, size):
         return np.random.uniform(self.low, self.high, size)
+
+
+class XavierInitializer(Initializer):
+    def __init__(self, dim_1, dim_2):
+        self.dim_1 = dim_1
+        self.dim_2 = dim_2
+
+    def initialize(self, size):
+        return np.random.uniform(-1, 1, size) * \
+               (6 / (self.dim_1 + self.dim_2)) ** (1/2)
