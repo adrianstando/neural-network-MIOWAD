@@ -28,8 +28,13 @@ class DenseNetLayer(Layer):
         self.weights = initializer.initialize((input_size, number_of_neurons))
         self.biases = initializer.initialize(number_of_neurons)
         self.initializer = initializer
-        self.activation_function = generate_vectorized_function(activation_function.function)
-        self.activation_function_derivative = generate_vectorized_function(activation_function.derivative)
+
+        if not activation_function.is_vectorized:
+            self.activation_function = generate_vectorized_function(activation_function.function)
+            self.activation_function_derivative = generate_vectorized_function(activation_function.derivative)
+        else:
+            self.activation_function = activation_function.function
+            self.activation_function_derivative = activation_function.derivative
 
     def forward(self, vector_in):
         y = vector_in @ self.weights

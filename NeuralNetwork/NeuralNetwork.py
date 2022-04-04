@@ -5,9 +5,17 @@ from .Optimizers import Optimizer, SGD
 
 
 class Net:
-    def __init__(self, optimizer: Optimizer = SGD()):
+    def __init__(self, optimizer: Optimizer = SGD(), loss: str = 'mse'):
         self.layers = []
         self.optimizer = optimizer
+        if loss == 'mse':
+            self.loss_name = 'mse'
+            self.loss_func = mse
+        elif loss == 'cross-entropy':
+            self.loss_name = 'cross-entropy'
+            self.loss_func = cross_entropy
+        else:
+            raise Exception('Unknown loss function')
 
     def add_layer(self, layer: DenseNetLayer):
         self.layers.append(layer)
@@ -75,10 +83,11 @@ class Net:
                                 [layer.biases for layer in self.layers],
                                 self.backward_step)
             if i % eval_frequency == 0:
-                print(f"Epoch: {i}, mse train: {mse(Y, self.forward(X))}, mse eval: {mse(Y_eval, self.forward(X_eval))}")
+                print(
+                    f"Epoch: {i}, {self.loss_name} train: {self.loss_func(Y, self.forward(X))}, {self.loss_name} eval: {self.loss_func(Y_eval, self.forward(X_eval))}")
         print(f"Training result:")
-        print(f"    mse train: {mse(Y, self.forward(X))}")
-        print(f"    mse eval: {mse(Y_eval, self.forward(X_eval))}")
+        print(f"    {self.loss_name} train: {self.loss_func(Y, self.forward(X))}")
+        print(f"    {self.loss_name} eval: {self.loss_func(Y_eval, self.forward(X_eval))}")
 
     def train_and_visualize(self, X, Y, X_eval, Y_eval, n_epochs=100, eval_frequency=1):
         weight_norms = []
@@ -98,17 +107,17 @@ class Net:
                                 [layer.biases for layer in self.layers],
                                 self.backward_step)
             if i % eval_frequency == 0:
-                mse_single_train = mse(Y, self.forward(X))
-                mse_single_test = mse(Y_eval, self.forward(X_eval))
+                mse_single_train = self.loss_func(Y, self.forward(X))
+                mse_single_test = self.loss_func(Y_eval, self.forward(X_eval))
                 mse_train.append(mse_single_train)
                 mse_test.append(mse_single_test)
-                #print(f"Epoch: {i}, mse train: {mse_single_train}, mse eval: {mse_single_test}")
+                # print(f"Epoch: {i}, mse train: {mse_single_train}, mse eval: {mse_single_test}")
             weight_norms.append([np.linalg.norm(__change_to_2d(layer.weights), ord='fro') for layer in self.layers])
             bias_norms.append([np.linalg.norm(__change_to_2d(layer.biases), ord='fro') for layer in self.layers])
 
         print(f"Training result:")
-        print(f"    mse train: {mse(Y, self.forward(X))}")
-        print(f"    mse eval: {mse(Y_eval, self.forward(X_eval))}")
+        print(f"    {self.loss_name} train: {self.loss_func(Y, self.forward(X))}")
+        print(f"    {self.loss_name} eval: {self.loss_func(Y_eval, self.forward(X_eval))}")
 
         for i in range(len(self.layers)):
             plt.scatter(
@@ -136,7 +145,7 @@ class Net:
             mse_test,
             color='red'
         )
-        plt.title(f"MSE of train and test set")
+        plt.title(f"{self.loss_name} of train and test set")
         plt.legend(['train', 'test'])
         plt.show()
 
@@ -159,3 +168,96 @@ class Net:
 
 def mse(y_true, y_pred):
     return np.sum(np.square(y_true - y_pred)) / y_pred.size
+
+
+def f1_score(y_true, y_pred):
+    # input has shape:
+    #                   class0      class1
+    # observation1      ...         ...
+    # observation2      ...         ...
+    # observation3      ...         ...
+    # ...
+    
+    TP = 0
+    FN = 0
+    FP = 0
+    TN = 0
+
+    for i in range(len(y_true)):
+        if y_true[i, 1] == 1 and y_pred[i, 1] == 1:
+            TP += 1
+        elif y_true[i, 0] == 1 and y_pred[i, 0] == 1:
+            TN += 1
+        elif y_true[i, 0] == 1 and y_pred[i, 1] == 1:
+            FP += 1
+        else:
+            FN += 1
+
+    precision = TP / (TP + FP)
+    recall = TP / (TP + FN)
+
+    return 2 * (precision * recall) / (precision + recall)
+
+
+def f1_score_macro(y_true, y_pred):
+    # input has shape:
+    #                   class0      class1      class2      ...
+    # observation1      ...         ...         ...         ...
+    # observation2      ...         ...         ...         ...
+    # observation3      ...         ...         ...         ...
+    # ...
+    
+    def f1_score_one_dim(y_true, y_pred):
+        TP = 0
+        FN = 0
+        FP = 0
+        TN = 0
+
+        for i in range(len(y_true)):
+            if y_true[i] == 1 and y_pred[i] == 1:
+                TP += 1
+            elif y_true[i] == 0 and y_pred[i] == 0:
+                TN += 1
+            elif y_true[i] == 0 and y_pred[i] == 1:
+                FP += 1
+            else:
+                FN += 1
+        
+        #print(TP, FN, FP, TN)
+
+        precision = TP / (TP + FP)
+        recall = TP / (TP + FN)
+
+        return 2 * (precision * recall) / (precision + recall)
+    
+    n_class = y_true.shape[1]
+    outs = []
+    for i in range(n_class):
+        outs.append(
+            f1_score_one_dim(y_true[:, i], y_pred[:, i])
+        )
+
+    return np.mean(outs)
+
+
+def cross_entropy(y_true, y_pred):   
+    # input has shape:
+    #                   class0      class1      class2      ...
+    # observation1      ...         ...         ...         ...
+    # observation2      ...         ...         ...         ...
+    # observation3      ...         ...         ...         ...
+    # ...
+    
+    epsilon = 1e-12
+    predictions = np.clip(np.array(y_pred), epsilon, 1. - epsilon)
+
+    n_class = y_true.shape[1]
+    n = y_true.shape[0]
+
+    out = 0
+
+    for i in range(n):
+        for j in range(n_class):
+            out -= y_true[i, j] * np.log(predictions[i, j])
+
+    return out / n
