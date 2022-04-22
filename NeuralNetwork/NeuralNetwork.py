@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from .Layers import DenseNetLayer
 from .Optimizers import Optimizer, SGD
+import pickle
 
 
 class Net:
@@ -76,16 +77,33 @@ class Net:
 
         return weight_changes, biases_changes
 
-    def train(self, X, Y, X_eval, Y_eval, n_epochs=100, eval_frequency=1):
+    def train(self, X, Y, X_eval, Y_eval, n_epochs=100, eval_frequency=1, early_stop = None):
+        previous_test_loss = float('inf')
+        n_epochs_loss_raising = 0
+        
         for i in range(n_epochs):
             self.optimizer.step(X, Y,
                                 [layer.weights for layer in self.layers],
                                 [layer.biases for layer in self.layers],
                                 self.backward_step)
+            
+            # early stop function
+            if early_stop is not None:
+                test_loss = self.loss_func(Y_eval, self.forward(X_eval))
+                if test_loss > previous_test_loss:
+                    n_epochs_loss_raising += 1
+                    if n_epochs_loss_raising >= early_stop:
+                        break
+                else:
+                    n_epochs_loss_raising = 0
+                    previous_test_loss = test_loss
+                
             if i % eval_frequency == 0:
                 print(
-                    f"Epoch: {i}, {self.loss_name} train: {self.loss_func(Y, self.forward(X))}, {self.loss_name} eval: {self.loss_func(Y_eval, self.forward(X_eval))}")
+                    f"Epoch: {i}, {self.loss_name} train: {self.loss_func(Y, self.forward(X))}, {self.loss_name} val: {self.loss_func(Y_eval, self.forward(X_eval))}")
+        
         print(f"Training result:")
+        if early_stop is not None: print(f"    epochs: {i}")    
         print(f"    {self.loss_name} train: {self.loss_func(Y, self.forward(X))}")
         print(f"    {self.loss_name} eval: {self.loss_func(Y_eval, self.forward(X_eval))}")
 
@@ -164,6 +182,22 @@ class Net:
             print(f"Layer {i}")
             self.layers[i].summary()
             print(" ")
+    
+    def save_model(self, path):
+        d = {
+                'biases' : [layer.biases for layer in self.layers],
+                'weights' : [layer.weights for layer in self.layers]
+        }
+        
+        with open(path, 'wb') as f:
+            pickle.dump(d, f)
+    
+    def load_model(self, path):
+        with open(path, 'rb') as f:
+            d = pickle.load(f)
+            for n in range(len(self.layers)):
+                self.layers[n].biases = d['biases'][n]
+                self.layers[n].weights = d['weights'][n]
 
 
 def mse(y_true, y_pred):
