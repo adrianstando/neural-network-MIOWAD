@@ -1,3 +1,6 @@
 **/__pycache__
 **/.ipynb_checkpoints/
-
+kaggle.json
+data/som/UCI_HAR_X_train.txt
+data/som/UCI_HAR_y_train.txt
+data/som/mnist_train.csv

@@ -43,7 +43,7 @@ class SOM:
                  self.__update_weights(BMU, obs, epoch)
         self.n_epochs += epochs
                  
-    def plot_map(self, X, Y, type=0, colormap='Paired', fig_size=(6, 6), ax=None, legend=True, dot_size = 100, show_axis = False, invert_y_axis = True , *args_tsne, **kwargs_tsne):
+    def plot_map(self, X, Y, Y_labels=None, type=0, colormap='Paired', fig_size=(6, 6), ax=None, legend=True, dot_size = 100, show_axis = False, invert_y_axis = True , *args_tsne, **kwargs_tsne):
         n_classes = len(np.unique(Y))
         results = np.zeros((n_classes, self.height, self.width))
         
@@ -85,10 +85,16 @@ class SOM:
                 ax.axis([-0.5, self.width + 0.5, -0.5, self.height + 0.5])
                 ax.axis('equal')
                 if legend:
-                    ax.legend(handles=[
-                            Patch(color=color_generator(i), label=str(i)) 
-                            for i in range(n_classes)
-                    ], loc='center left', bbox_to_anchor=(1, 0.5))
+                    if Y_labels is None:
+                        ax.legend(handles=[
+                                Patch(color=color_generator(i), label=str(i)) 
+                                for i in range(n_classes)
+                        ], loc='center left', bbox_to_anchor=(1, 0.5))
+                    else:
+                        ax.legend(handles=[
+                                Patch(color=color_generator(i), label=Y_labels[i]) 
+                                for i in range(n_classes)
+                        ], loc='center left', bbox_to_anchor=(1, 0.5))
     
             else:
                 for w in range(self.width):
@@ -104,10 +110,16 @@ class SOM:
                 ax.axis([-np.sqrt(3), self.width * np.sqrt(3) + np.sqrt(3), -2, self.height * 1.5 + 2])
                 ax.axis('equal')
                 if legend:
-                    ax.legend(handles=[
-                            Patch(color=color_generator(i), label=str(i)) 
-                            for i in range(n_classes)
-                    ], loc='center left', bbox_to_anchor=(1, 0.5))
+                    if Y_labels is None:
+                        ax.legend(handles=[
+                                Patch(color=color_generator(i), label=str(i)) 
+                                for i in range(n_classes)
+                        ], loc='center left', bbox_to_anchor=(1, 0.5))
+                    else:
+                        ax.legend(handles=[
+                                Patch(color=color_generator(i), label=Y_labels[i]) 
+                                for i in range(n_classes)
+                        ], loc='center left', bbox_to_anchor=(1, 0.5))
                 
             
             
@@ -144,10 +156,16 @@ class SOM:
                 plt.scatter(points[:,0], points[:,1], color = color_generator(colours), s=dot_size, alpha=alphas)
                 
             if legend:
-                ax.legend(handles=[
-                        Patch(color=color_generator(i), label=str(i)) 
-                        for i in range(n_classes)
-                ], loc='center left', bbox_to_anchor=(1, 0.5))
+                    if Y_labels is None:
+                        ax.legend(handles=[
+                                Patch(color=color_generator(i), label=str(i)) 
+                                for i in range(n_classes)
+                        ], loc='center left', bbox_to_anchor=(1, 0.5))
+                    else:
+                        ax.legend(handles=[
+                                Patch(color=color_generator(i), label=Y_labels[i]) 
+                                for i in range(n_classes)
+                        ], loc='center left', bbox_to_anchor=(1, 0.5))
             
         plt.title('SOM reults')
         
