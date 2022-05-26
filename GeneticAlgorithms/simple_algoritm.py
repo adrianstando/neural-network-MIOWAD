@@ -55,7 +55,7 @@ class GeneticAlgorithm:
             self.population[indexes_to_mutate[i]] += np.random.normal(size=self.vector_dim)
         
     def selection(self, k=None):
-        # selekcja ruletkowa
+        # selekcja turniejowa
         if k is None:
             k = math.ceil(len(self.population) * 0.3)
             
